@@ -3,6 +3,7 @@ const cors = require('cors');
 const { default: mongoose } = require('mongoose');
 const Department = require('./schema');
 const path = require('path');
+const { data } = require('./seed');
 
 const app = express();
 app.use(express.json());
@@ -76,6 +77,31 @@ app.post('/add_task', async (req, res) => {
     );
 
     res.send(departments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/add_department', async (req, res) => {
+  try {
+    const departmentName = req.body.departmentName;
+
+    await Department.create({
+      name: departmentName,
+    });
+
+    res.sendStatus(201);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/reset', async (req, res) => {
+  try {
+    await Department.deleteMany();
+    await Department.insertMany(data.departments);
+
+    res.sendStatus(200);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

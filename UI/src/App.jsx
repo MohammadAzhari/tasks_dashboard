@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 
+import icon from './assets/vite.jpg';
+
+// const baseUrl = 'http://localhost:4000';
+const baseUrl = '';
+
 function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState([]);
 
   const [depForAddTask, setDepForAddTask] = useState();
   const [addedTaskName, setAddedTaskName] = useState('');
+  const [addedDepName, setAddedDepName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -15,7 +21,7 @@ function App() {
 
   const fetchData = () => {
     setIsLoading(true);
-    fetch('/departments').then((res) => {
+    fetch(baseUrl + '/departments').then((res) => {
       res.json().then((data) => {
         setData(data);
         setIsLoading(false);
@@ -54,7 +60,7 @@ function App() {
   const addTask = async () => {
     setIsSubmitting(true);
 
-    let res = await fetch('/add_task', {
+    let res = await fetch(baseUrl + '/add_task', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +71,22 @@ function App() {
       }),
     });
 
-    let data = await res.json();
+    setIsSubmitting(false);
+    fetchData();
+  };
+
+  const addDepartment = async () => {
+    setIsSubmitting(true);
+
+    let res = await fetch(baseUrl + '/add_department', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        departmentName: addedDepName,
+      }),
+    });
     setIsSubmitting(false);
     fetchData();
   };
@@ -80,8 +101,15 @@ function App() {
   return (
     <div className='p-10 flex w-full'>
       <div className='w-2/5 p-5'>
-        <div className='flex items-center w-full justify-between p-3 bg-slate-100 rounded-lg'>
-          <p className='texxl'>Completed Status</p>
+        <div className='font-bold text-3xl flex items-center mb-5 border-2 p-5 border-slate-200 rounded-2xl'>
+          <div className='w-[200px]'>
+            <img src={icon} alt='' />
+          </div>
+          <div className=''>Ground handling training</div>
+        </div>
+
+        <div className='flex items-center w-full justify-between p-3 text-xl bg-slate-100 rounded-lg'>
+          <p className='texxl'>Completion Status</p>
         </div>
 
         <div className='flex w-full items-center justify-center mt-5'>
@@ -96,6 +124,19 @@ function App() {
       </div>
 
       <div className='w-full p-5'>
+        <div className='font-bold text-xl flex items-center mb-5 border-2 p-2 px-5 border-slate-200 rounded-2xl justify-between'>
+          <div className=''>Exercises:</div>
+          <div className=''>
+            <button
+              className='btn btn-primary'
+              onClick={() => {
+                document.getElementById('dep_modal').showModal();
+              }}
+            >
+              Add
+            </button>
+          </div>
+        </div>
         {data.map((department) => {
           let completed = 0;
           department.tasks.forEach((task) => {
@@ -103,11 +144,12 @@ function App() {
           });
           let progress = ((100 * completed) / department.tasks.length).toFixed(2);
 
+          if (isNaN(progress)) progress = (0).toFixed(2);
+
           return (
             <div className=''>
               <div className='flex items-center w-full justify-between p-3 bg-slate-100 rounded-lg'>
                 <div className='w-1/2'>
-                  <p>Department:</p>
                   <div className='text-2xl'>{department.name}</div>
                 </div>
                 <div className='w-1/4 flex items-center border-l-2 px-2 h-20'>
@@ -131,7 +173,7 @@ function App() {
                     className='btn btn-primary'
                     onClick={() => {
                       setDepForAddTask(department);
-                      document.getElementById('my_modal_2').showModal();
+                      document.getElementById('task_modal').showModal();
                     }}
                   >
                     Add Task
@@ -152,8 +194,8 @@ function App() {
                     {department.tasks.map((task, i) => (
                       <tr>
                         <th>{i + 1}</th>
-                        <td>{task.name}</td>
-                        <td>
+                        <td className='w-2/3'>{task.name}</td>
+                        <td className='w-1/2'>
                           {task.isCompleted ? <div className='badge badge-success'>Completed</div> : <div className='badge badge-error'>Not Completed</div>}
                         </td>
                       </tr>
@@ -165,10 +207,10 @@ function App() {
           );
         })}
       </div>
-      <dialog id='my_modal_2' className='modal'>
+      <dialog id='task_modal' className='modal'>
         <div className='modal-box'>
           <div className='text-2xl'>Add New Task</div>
-          <div className='mt-3 w-full'>
+          <div className='mt-3 w-full hidden'>
             <p className='font-bold'>Department Name:</p>
             <input type='text' placeholder={depForAddTask?.name} className=' mt-2 input input-bordered w-full ' disabled />
           </div>
@@ -184,6 +226,33 @@ function App() {
           <div className='mt-3 w-full'>
             <button className='btn btn-primary' disabled={isSubmitting} onClick={addTask}>
               Add Task
+            </button>
+          </div>
+        </div>
+
+        <form method='dialog' className='modal-backdrop'>
+          <button>close</button>
+        </form>
+      </dialog>
+      <dialog id='dep_modal' className='modal'>
+        <div className='modal-box'>
+          <div className='text-2xl'>Add New Exercise</div>
+          <div className='mt-3 w-full hidden'>
+            <p className='font-bold'>Department Name:</p>
+            <input type='text' placeholder={depForAddTask?.name} className=' mt-2 input input-bordered w-full ' disabled />
+          </div>
+          <div className='mt-3 w-full'>
+            <p className='font-bold'>Exercise Name:</p>
+            <input
+              type='text'
+              onChange={(e) => setAddedDepName(e.target.value)}
+              placeholder='Type here'
+              className=' mt-2 input input-bordered input-md w-full '
+            />
+          </div>
+          <div className='mt-3 w-full'>
+            <button className='btn btn-primary' disabled={isSubmitting} onClick={addDepartment}>
+              Add Exercise
             </button>
           </div>
         </div>
